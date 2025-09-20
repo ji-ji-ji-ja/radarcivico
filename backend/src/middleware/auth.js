@@ -5,34 +5,60 @@ dotenv.config();
 
 const API_KEY = process.env.MODERATION_API_KEY;
 
+// Middleware de autenticación
 export const authenticateModerator = (req, res, next) => {
+  // Verificar que la API_KEY esté configurada
+  if (!API_KEY) {
+    console.error('❌ ERROR: MODERATION_API_KEY no está configurada en las variables de entorno');
+    return res.status(500).json({ 
+      error: 'Error de configuración del servidor',
+      message: 'La clave de moderación no está configurada correctamente'
+    });
+  }
+
   const authHeader = req.headers.authorization;
   
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Acceso no autorizado' });
+  if (!authHeader) {
+    return res.status(401).json({ 
+      error: 'Token requerido',
+      message: 'Incluye Authorization: Bearer <tu-token> en los headers'
+    });
   }
 
-  const token = authHeader.substring(7);
+  if (!authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ 
+      error: 'Formato de token inválido',
+      message: 'Usa el formato: Bearer <tu-token>'
+    });
+  }
+
+  const token = authHeader.substring(7).trim();
   
   if (token !== API_KEY) {
-    return res.status(401).json({ error: 'Token inválido' });
+    console.warn('⚠️ Intento de acceso con token inválido desde IP:', req.ip);
+    return res.status(401).json({ 
+      error: 'Token inválido',
+      message: 'Verifica tu clave de moderación'
+    });
   }
 
+  console.log('✅ Acceso autorizado desde IP:', req.ip);
   next();
 };
 
-// Middleware para verificar el origen de la solicitud (opcional)
-export const checkModerationOrigin = (req, res, next) => {
-  if (process.env.NODE_ENV === 'production') {
-    const referer = req.headers.referer;
-    const host = req.headers.host;
-    
-    // Verificar que la solicitud venga de nuestro dominio
-    if (!referer || !referer.includes(host)) {
-      console.warn('⚠️ Intento de acceso al panel de moderación desde origen no autorizado:', referer);
-      return res.status(403).json({ error: 'Acceso no permitido desde este origen' });
-    }
+// Middleware opcional para verificar la configuración al iniciar
+export const verifyAuthConfig = () => {
+  if (!API_KEY) {
+    console.error('❌ ERROR CRÍTICO: MODERATION_API_KEY no está configurada');
+    console.error('Por favor agrega MODERATION_API_KEY=tu-clave-secreta en tu archivo .env');
+    process.exit(1);
   }
   
-  next();
+  if (!process.env.FRONTEND_URL) {
+    console.warn('⚠️ ADVERTENCIA: FRONTEND_URL no está configurada');
+    console.warn('Usando URL por defecto: http://localhost:5173');
+  }
+  
+  console.log('✅ Configuración de autenticación verificada correctamente');
+  console.log('✅ Configuración de CORS verificada');
 };

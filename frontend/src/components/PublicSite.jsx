@@ -1,5 +1,5 @@
-/* eslint-disable no-unused-vars */
 import { useState, useEffect } from 'react'
+import { api } from '../services/api'
 
 const PublicSite = () => {
   const [showForm, setShowForm] = useState(false)
@@ -21,14 +21,8 @@ const PublicSite = () => {
   const fetchApprovedPosts = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/posts')
-      
-      if (!response.ok) {
-        throw new Error('Error al cargar las publicaciones')
-      }
-      
-      const data = await response.json()
-      setPosts(data)
+      const data = await api.getPosts('all', 1, 50) // Obtener las primeras 50 publicaciones
+      setPosts(data.posts || data) // Ajustar según la respuesta de tu API
       setError('')
     } catch (error) {
       console.error('Error fetching posts:', error)
@@ -41,27 +35,14 @@ const PublicSite = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      const response = await fetch('/api/posts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData),
-      })
-      
-      if (response.ok) {
-        setFormData({ title: '', content: '', category: 'general', link: '' })
-        setShowForm(false)
-        alert('✅ Publicación enviada para moderación. Será revisada pronto.')
-        
-        // Recargar las publicaciones para mostrar las actualizadas
-        fetchApprovedPosts()
-      } else {
-        throw new Error('Error al enviar la publicación')
-      }
+      await api.createPost(formData)
+      setFormData({ title: '', content: '', category: 'general', link: '' })
+      setShowForm(false)
+      alert('✅ Publicación enviada para moderación. Será revisada pronto.')
+      fetchApprovedPosts()
     } catch (error) {
       console.error('Error creating post:', error)
-      alert('❌ Error al crear la publicación. Intenta nuevamente.')
+      alert('❌ Error al crear la publicación: ' + error.message)
     }
   }
 
@@ -81,6 +62,7 @@ const PublicSite = () => {
     try {
       const domain = new URL(url).hostname
       return domain.replace('www.', '')
+    // eslint-disable-next-line no-unused-vars
     } catch (e) {
       return 'enlace'
     }
