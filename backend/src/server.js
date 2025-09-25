@@ -11,21 +11,18 @@ dotenv.config();
 verifyAuthConfig();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
 
 // Configurar CORS dinámicamente
 const corsOptions = {
   origin: function (origin, callback) {
-    // Permitir solicitudes sin origen (como apps móviles o Postman)
     if (!origin) return callback(null, true);
-    
+
     const allowedOrigins = [
       process.env.FRONTEND_URL,
       'http://localhost:5173',
       'http://localhost:3000'
-    ].filter(Boolean); // Remover valores undefined/null
+    ].filter(Boolean);
 
-    // Verificar si el origen está permitido
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -37,23 +34,21 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
-// Middleware
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 
-// Log de solicitudes para debugging
+// Log de solicitudes
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
 });
 
-// Routes
+// Rutas
 app.use('/api/posts', postRoutes);
 
-// Health check mejorado
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     message: 'Server is running',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV,
@@ -62,33 +57,10 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Ruta de información del servidor (solo desarrollo)
-if (process.env.NODE_ENV === 'development') {
-  app.get('/api/info', (req, res) => {
-    res.json({
-      server: 'Radar Cívico Backend',
-      version: '1.0.0',
-      environment: process.env.NODE_ENV,
-      frontendUrl: process.env.FRONTEND_URL,
-      database: {
-        connected: mongoose.connection.readyState === 1,
-        name: mongoose.connection.name
-      },
-      cors: {
-        allowedOrigins: [
-          process.env.FRONTEND_URL,
-          'http://localhost:5173',
-          'http://localhost:3000'
-        ].filter(Boolean)
-      }
-    });
-  });
-}
-
 // Manejo de errores de CORS
 app.use((err, req, res, next) => {
   if (err.message === 'No permitido por CORS') {
-    return res.status(403).json({ 
+    return res.status(403).json({
       error: 'Acceso no permitido',
       message: 'El origen de la solicitud no está autorizado'
     });
@@ -99,33 +71,19 @@ app.use((err, req, res, next) => {
 // Manejo general de errores
 app.use((err, req, res, next) => {
   console.error('Error:', err.stack);
-  res.status(500).json({ 
+  res.status(500).json({
     error: 'Error interno del servidor',
     message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong!'
   });
 });
 
-// Conectar MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/radarcivico')
+// Conexión a MongoDB (sin process.exit en serverless)
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
   .then(() => console.log('✅ Connected to MongoDB'))
-  .catch(err => {
-    console.error('❌ MongoDB connection error:', err);
-    process.exit(1);
-  });
+  .catch(err => console.error('❌ MongoDB connection error:', err));
 
-// Manejar cierre graceful
-process.on('SIGINT', async () => {
-  console.log('\n🛑 Shutting down gracefully...');
-  await mongoose.connection.close();
-  process.exit(0);
-});
-
-// Iniciar servidor
-/*app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL}`);
-  console.log(`🔑 Moderation API Key: ${process.env.MODERATION_API_KEY ? 'Configurada' : 'NO configurada'}`);
-  console.log(`📊 Environment: ${process.env.NODE_ENV}`);
-});*/
-
+// Exportar app para Vercel
 export default app;
