@@ -121,11 +121,11 @@ process.on('SIGINT', async () => {
 });
 
 // Iniciar servidor
-app.listen(PORT, () => {
+/*app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL}`);
   console.log(`🔑 Moderation API Key: ${process.env.MODERATION_API_KEY ? 'Configurada' : 'NO configurada'}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV}`);
-});
+});*/
 
 export default app;
