@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiBaseUrl } from '../api'; // 👈 agrega esto en api.js y lo importamos
+import { api } from '../services/api'; // 👈 agrega esto en api.js y lo importamos
 
 const ModerationPanel = () => {
   const [posts, setPosts] = useState([]);
@@ -57,7 +57,7 @@ const ModerationPanel = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `${apiBaseUrl}/posts/moderation?status=${selectedStatus}`, // ✅ ahora usa apiBaseUrl
+        `${api}/posts/moderation?status=${selectedStatus}`, // ✅ ahora usa api
         {
           headers: {
             'Authorization': `Bearer ${API_KEY}`
@@ -90,7 +90,7 @@ const ModerationPanel = () => {
     if (!API_KEY) return;
 
     try {
-      const response = await fetch(`${apiBaseUrl}/posts/moderation/stats`, { // ✅ apiBaseUrl
+      const response = await fetch(`${api}/posts/moderation/stats`, { // ✅ api
         headers: {
           'Authorization': `Bearer ${API_KEY}`
         }
@@ -116,7 +116,7 @@ const ModerationPanel = () => {
     }
 
     try {
-      const response = await fetch(`${apiBaseUrl}/posts/${postId}/moderate`, { // ✅ apiBaseUrl
+      const response = await fetch(`${api}/posts/${postId}/moderate`, { // ✅ api
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
