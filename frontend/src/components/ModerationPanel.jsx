@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { apiBaseUrl } from '../api'; // 👈 agrega esto en api.js y lo importamos
 
 const ModerationPanel = () => {
   const [posts, setPosts] = useState([]);
@@ -48,60 +49,53 @@ const ModerationPanel = () => {
   };
 
   const fetchModerationPosts = async () => {
-  if (!API_KEY) {
-    setError('❌ API_KEY no configurada');
-    return;
-  }
-  
-  setLoading(true);
-  try {
-    const response = await fetch(`/api/posts/moderation?status=${selectedStatus}`, {
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`
-      }
-    });
-    
-    if (response.status === 401) {
-      setError('❌ Error de autenticación. La sesión ha expirado');
-      handleLogout();
+    if (!API_KEY) {
+      setError('❌ API_KEY no configurada');
       return;
     }
-    
-    if (!response.ok) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`);
+
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `${apiBaseUrl}/posts/moderation?status=${selectedStatus}`, // ✅ ahora usa apiBaseUrl
+        {
+          headers: {
+            'Authorization': `Bearer ${API_KEY}`
+          }
+        }
+      );
+
+      if (response.status === 401) {
+        setError('❌ Error de autenticación. La sesión ha expirado');
+        handleLogout();
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setPosts(Array.isArray(data) ? data : (Array.isArray(data.posts) ? data.posts : []));
+      setError('');
+    } catch (error) {
+      console.error('Error fetching moderation posts:', error);
+      setError(`❌ Error al cargar publicaciones: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
-    
-    const data = await response.json();
-
-    // 👇 Asegurar siempre un array
-    if (Array.isArray(data)) {
-      setPosts(data);
-    } else if (Array.isArray(data.posts)) {
-      setPosts(data.posts);
-    } else {
-      setPosts([]);
-    }
-
-    setError('');
-  } catch (error) {
-    console.error('Error fetching moderation posts:', error);
-    setError(`❌ Error al cargar publicaciones: ${error.message}`);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   const fetchStats = async () => {
     if (!API_KEY) return;
-    
+
     try {
-      const response = await fetch('/api/posts/moderation/stats', {
+      const response = await fetch(`${apiBaseUrl}/posts/moderation/stats`, { // ✅ apiBaseUrl
         headers: {
           'Authorization': `Bearer ${API_KEY}`
         }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         const statsObj = data.reduce((acc, stat) => {
@@ -120,9 +114,9 @@ const ModerationPanel = () => {
       setError('API_KEY no configurada');
       return;
     }
-    
+
     try {
-      const response = await fetch(`/api/posts/${postId}/moderate`, {
+      const response = await fetch(`${apiBaseUrl}/posts/${postId}/moderate`, { // ✅ apiBaseUrl
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
